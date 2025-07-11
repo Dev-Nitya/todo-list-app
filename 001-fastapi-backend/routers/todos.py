@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 import schemas
 import crud
 from database import SessionLocal
+from utils.summarize import summarize_chain
+from utils.poem import poem_chain
 
 router = APIRouter(
     prefix="/todos"
@@ -45,3 +47,18 @@ def delete_todo(id: int, db: Session = Depends(get_db)):
     res = crud.delete_todo(db, id)
     if res is None:
         raise HTTPException(status_code=404, detail="to do not found")
+    
+@router.post("/summarize-text")
+async def summarize_text(text: str):
+    summary = summarize_chain.invoke({"text": text})
+    return {"summary": summary}
+
+@router.post("/write-poem/{id}")
+async def get_todo_by_id(id: int, db: Session = Depends(get_db)):
+    todo = crud.read_todo(db, id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="to do not found")
+    
+    topic = todo.name
+    poem = poem_chain.invoke({"topic": topic})
+    return {"poem": poem}
